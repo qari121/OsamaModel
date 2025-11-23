@@ -21,10 +21,20 @@ app.add_middleware(
 
 @app.post("/api/nails/segment", response_model=NailResponse)
 async def segment_nails(file: UploadFile = File(...)):
+    import time
+    start_time = time.time()
+    
     raw = await file.read()
+    read_time = time.time()
+    
     img = read_image_from_bytes(raw)
+    decode_time = time.time()
 
     result = run_inference(img)
+    inference_time = time.time()
+    
+    total_time = time.time() - start_time
+    print(f"Timing - Read: {read_time-start_time:.3f}s, Decode: {decode_time-read_time:.3f}s, Inference: {inference_time-decode_time:.3f}s, Total: {total_time:.3f}s")
     nails = [
         NailInstance(
             id=n["id"],

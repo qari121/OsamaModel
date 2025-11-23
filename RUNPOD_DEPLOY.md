@@ -42,7 +42,7 @@ This guide explains how to deploy the Nail AR application to RunPod.
 5. **Pod Settings**:
    - **GPU Type**: Select a GPU (e.g., RTX 3090, A100) - recommended for model inference
    - **Container Disk**: At least 20GB (for model and dependencies)
-   - **Port**: Expose port `8000`
+   - **Expose HTTP Ports**: Add port `8000` (this is crucial for public access!)
 
 6. **Startup Command** (usually auto-filled from Dockerfile):
    ```
@@ -51,10 +51,14 @@ This guide explains how to deploy the Nail AR application to RunPod.
    (Already set in Dockerfile CMD, so you can leave this empty)
 
 7. **Access the Application**:
-   - Once the pod is running, RunPod will provide a public URL
-   - Access the app at: `https://your-pod-id.runpod.net`
+   - Once the pod is running, go to your Pod details page in RunPod dashboard
+   - Find your **Pod ID** (visible in the pod list or details page)
+   - Your public URL will be: `https://[POD_ID]-8000.proxy.runpod.net`
+   - Example: If your Pod ID is `abc123xyz`, your URL is `https://abc123xyz-8000.proxy.runpod.net`
    - The frontend will be served at the root URL
-   - API docs available at: `https://your-pod-id.runpod.net/docs`
+   - API docs available at: `https://[POD_ID]-8000.proxy.runpod.net/docs`
+   
+   **Important**: Make sure you've exposed port 8000 in step 5, otherwise the URL won't work!
 
 ## Testing Locally
 
@@ -101,10 +105,19 @@ Then in RunPod, just use: `your-dockerhub-username/nail-ar:latest` as the contai
 
 ## Troubleshooting
 
-- **Model not loading**: Check that `checkpoint_best_total.pth` is in the correct location
-- **Port issues**: Ensure port 8000 is exposed in RunPod pod settings
+- **Model not loading**: Check that `checkpoint_best_total.pth` is in the correct location. If using Git LFS, run `git lfs pull` after cloning.
+- **Port issues**: 
+  - Ensure port 8000 is exposed in "Expose HTTP Ports" in pod settings
+  - Check that your app is listening on `0.0.0.0:8000` (not `localhost:8000`)
+  - The URL format is: `https://[POD_ID]-8000.proxy.runpod.net`
+- **Can't find the URL**: 
+  - Go to your Pod details page in RunPod dashboard
+  - Look for "HTTP Ports" or "Expose Ports" section
+  - The proxy URL should be visible there after exposing the port
+- **Git LFS issues**: If checkpoint file is only 134 bytes, install git-lfs and run `git lfs pull`
 - **GPU errors**: Verify CUDA is available: `nvidia-smi` should work in the pod
 - **Frontend not loading**: Check that static files are being served correctly
+- **Connection timeout**: RunPod proxy has a 100-second timeout. Optimize long-running requests.
 
 ## Cost Optimization
 

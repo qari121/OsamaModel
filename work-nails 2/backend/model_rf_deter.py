@@ -4,10 +4,30 @@ from rfdetr.util.coco_classes import COCO_CLASSES
 import supervision as sv
 from PIL import Image
 import numpy as np
+import torch
+
+# Check GPU availability
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
+if torch.cuda.is_available():
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
+    print(f"CUDA Version: {torch.version.cuda}")
 
 # Load the RF-DETR model
 model = RFDETRSegPreview(pretrain_weights="checkpoint_best_total.pth")
 model.optimize_for_inference()
+
+# Ensure model is on GPU if available
+if torch.cuda.is_available():
+    # Try to move model to GPU (RF-DETR might handle this internally, but we'll try)
+    if hasattr(model, 'model') and hasattr(model.model, 'cuda'):
+        model.model = model.model.cuda()
+        print("Model moved to GPU")
+    elif hasattr(model, 'to'):
+        model = model.to('cuda')
+        print("Model moved to GPU via .to()")
+    print(f"GPU Memory Allocated: {torch.cuda.memory_allocated(0) / 1024**3:.2f} GB")
+
 print("RF-DETR model loaded and optimized for inference.")
 
 def run_inference(image: Image.Image) -> Dict[str, Any]:
