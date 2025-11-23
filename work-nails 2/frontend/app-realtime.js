@@ -1,6 +1,62 @@
 // app-realtime.js — Real-time nail AR with performance monitoring
 
 const API_URL = "/api/nails/segment";
+const WS_URL = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws/nails/segment';
+
+// WebSocket connection management
+function connectWebSocket() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    return Promise.resolve();
+  }
+  
+  return new Promise((resolve, reject) => {
+    try {
+      ws = new WebSocket(WS_URL);
+      
+      ws.onopen = () => {
+        console.log("✅ WebSocket connected");
+        resolve();
+      };
+      
+      ws.onerror = (error) => {
+        console.error("❌ WebSocket error:", error);
+        reject(error);
+      };
+      
+      ws.onclose = () => {
+        console.log("🔌 WebSocket closed");
+        ws = null;
+        // Reject all pending requests
+        wsPendingQueue.forEach(({ reject: rejectRequest }) => {
+          rejectRequest(new Error("WebSocket closed"));
+        });
+        wsPendingQueue = [];
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          // Process first pending request (FIFO)
+          if (wsPendingQueue.length > 0) {
+            const { resolve: resolveRequest, startTime } = wsPendingQueue.shift();
+            const latency = Math.round(performance.now() - startTime);
+            resolveRequest({ data, latency });
+          }
+        } catch (err) {
+          console.error("Error parsing WebSocket message:", err);
+          // Reject first pending request on error
+          if (wsPendingQueue.length > 0) {
+            const { reject: rejectRequest } = wsPendingQueue.shift();
+            rejectRequest(err);
+          }
+        }
+      };
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
 // UI Elements
 const startBtn = document.getElementById("startBtn");
@@ -38,6 +94,9 @@ let offscreenCtx = null;
 let currentMaskCanvas = null;
 let isProcessing = false;
 let processingInterval = null;
+let ws = null;
+let wsPendingQueue = []; // Queue of pending requests (FIFO)
+let useWebSocket = true; // Toggle between WebSocket and HTTP
 
 // Performance tracking
 let frameCount = 0;
@@ -280,33 +339,74 @@ async function performSegmentation() {
 
     console.log(`Frame size: ${tempCanvas.width}×${tempCanvas.height}`);
 
-    // Send to API - lower quality for faster upload
-    const blob = await canvasToBlob(tempCanvas, "image/jpeg", 0.6);  // Reduced from 0.85
+    // Convert to blob
+    const blob = await canvasToBlob(tempCanvas, "image/jpeg", 0.6);
     console.log(`Blob size: ${(blob.size / 1024).toFixed(1)}KB`);
 
-    const formData = new FormData();
-    formData.append("file", blob, "frame.jpg");
+    let data, latency;
 
-    console.log(`🌐 Sending to API: ${API_URL}`);
-
-    const response = await fetch(API_URL, {
-      method: "POST",
-      body: formData
-    });
-
-    const apiEnd = performance.now();
-    const latency = Math.round(apiEnd - apiStart);
-    apiLatency.textContent = latency + "ms";
-
-    console.log(`📡 Response status: ${response.status} (${latency}ms)`);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("API error response:", errorText);
-      throw new Error(`API error ${response.status}: ${errorText.substring(0, 100)}`);
+    // Try WebSocket first (faster), fallback to HTTP
+    if (useWebSocket) {
+      try {
+        await connectWebSocket();
+        
+        const startTime = performance.now();
+        
+        // Wait for response (FIFO queue ensures order)
+        const result = await new Promise((resolve, reject) => {
+          wsPendingQueue.push({ resolve, reject, startTime });
+          
+          // Send binary image data
+          ws.send(blob);
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            const index = wsPendingQueue.findIndex(item => item.startTime === startTime);
+            if (index !== -1) {
+              wsPendingQueue.splice(index, 1);
+              reject(new Error("WebSocket request timeout"));
+            }
+          }, 5000);
+        });
+        
+        data = result.data;
+        latency = result.latency;
+        console.log(`📡 WebSocket response (${latency}ms)`);
+        
+      } catch (wsError) {
+        console.warn("WebSocket failed, falling back to HTTP:", wsError);
+        useWebSocket = false; // Disable WebSocket for this session
+        // Fall through to HTTP
+      }
     }
 
-    const data = await response.json();
+    // Fallback to HTTP if WebSocket failed or disabled
+    if (!data) {
+      const formData = new FormData();
+      formData.append("file", blob, "frame.jpg");
+
+      console.log(`🌐 Sending to API (HTTP): ${API_URL}`);
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: formData
+      });
+
+      const apiEnd = performance.now();
+      latency = Math.round(apiEnd - apiStart);
+
+      console.log(`📡 HTTP Response status: ${response.status} (${latency}ms)`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API error response:", errorText);
+        throw new Error(`API error ${response.status}: ${errorText.substring(0, 100)}`);
+      }
+
+      data = await response.json();
+    }
+
+    apiLatency.textContent = latency + "ms";
     console.log("✅ Segmentation result:", data);
 
     if (!data.nails || data.nails.length === 0) {
