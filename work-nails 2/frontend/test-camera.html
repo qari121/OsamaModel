@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camera Test</title>
+  <style>
+    body { padding: 20px; font-family: sans-serif; }
+    #status { color: red; font-weight: bold; margin: 20px 0; }
+    video { border: 2px solid #333; }
+  </style>
+</head>
+<body>
+  <h1>Simple Camera Test</h1>
+  <button id="testBtn">Click to Test Camera</button>
+  <div id="status"></div>
+  <video id="video" autoplay width="640" height="480"></video>
+
+  <script>
+    const btn = document.getElementById('testBtn');
+    const status = document.getElementById('status');
+    const video = document.getElementById('video');
+
+    console.log('Test page loaded');
+
+    btn.addEventListener('click', async () => {
+      console.log('Button clicked');
+      status.textContent = 'Requesting camera...';
+
+      try {
+        // Check if getUserMedia is available
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          status.textContent = 'ERROR: getUserMedia not available. You must use localhost or https.';
+          console.error('getUserMedia not available');
+          return;
+        }
+
+        console.log('getUserMedia is available, requesting stream...');
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: false
+        });
+
+        console.log('Got stream:', stream);
+        video.srcObject = stream;
+        await video.play();
+
+        status.textContent = 'SUCCESS! Camera is working. You should see video below.';
+        status.style.color = 'green';
+
+      } catch (err) {
+        console.error('Camera error:', err);
+        status.textContent = `ERROR: ${err.name} - ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>

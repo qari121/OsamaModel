@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Virtual Nail Try-On (Webcam Prototype)</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 16px;
+      background: #111;
+      color: #eee;
+    }
+    .row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    video, canvas {
+      border: 1px solid #444;
+      max-width: 100%;
+      background: #000;
+    }
+    .controls {
+      margin-top: 12px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    input[type="color"] {
+      width: 40px;
+      height: 40px;
+      border: none;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Virtual Nail Try-On (Webcam Prototype)</h1>
+
+  <div class="controls">
+    <button id="startCameraBtn">Start Camera</button>
+    <button id="captureBtn" disabled>Capture &amp; Segment</button>
+
+    <label>
+      Polish Color:
+      <input type="color" id="colorPicker" value="#28a9ff" />
+    </label>
+
+    <label>
+      Intensity:
+      <input type="range" id="intensity" min="0" max="100" value="90" />
+    </label>
+  </div>
+
+  <div class="row" style="margin-top: 16px;">
+    <div>
+      <h3>Live camera</h3>
+      <video id="video" autoplay playsinline></video>
+    </div>
+
+    <div>
+      <h3>Captured + recolored frame</h3>
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

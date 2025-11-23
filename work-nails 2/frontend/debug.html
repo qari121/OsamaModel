@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug Camera</title>
+  <style>
+    body { padding: 20px; font-family: monospace; }
+    .log { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+    video { border: 2px solid blue; margin: 10px 0; }
+    button { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Camera Debug Page</h1>
+  <button id="btn" style="background: yellow;">CLICK ME TO TEST CAMERA</button>
+
+  <div id="log" class="log">Waiting for button click...</div>
+
+  <video id="vid" width="640" height="480" autoplay></video>
+
+  <script>
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+    const vid = document.getElementById('vid');
+
+    function addLog(msg) {
+      console.log(msg);
+      log.innerHTML += '<br>' + msg;
+    }
+
+    addLog('✓ Script loaded');
+    addLog('✓ Button: ' + (btn ? 'Found' : 'NOT FOUND'));
+    addLog('✓ Video: ' + (vid ? 'Found' : 'NOT FOUND'));
+    addLog('✓ getUserMedia: ' + (navigator.mediaDevices?.getUserMedia ? 'Available' : 'NOT AVAILABLE'));
+
+    btn.onclick = async function() {
+      addLog('>>> Button clicked!');
+
+      try {
+        addLog('Requesting camera...');
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+
+        addLog('✓ Got stream!');
+        vid.srcObject = stream;
+        await vid.play();
+        addLog('✓ Video playing! You should see yourself.');
+
+      } catch(e) {
+        addLog('✗ ERROR: ' + e.name + ' - ' + e.message);
+      }
+    };
+  </script>
+</body>
+</html>

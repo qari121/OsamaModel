@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Nail AR - Optimized</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a0a;
+      color: #eee;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #222;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .tech-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-webgl { background: #667eea; color: white; }
+    .badge-optimized { background: #f093fb; color: white; }
+    .badge-gpu { background: #4facfe; color: white; }
+
+    /* Stats Panel */
+    .stats-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 16px;
+      min-width: 220px;
+      z-index: 1000;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .stats-panel h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    .stat-value {
+      font-size: 16px;
+      font-weight: 700;
+      font-family: 'Courier New', monospace;
+    }
+
+    .stat-value.fps { color: #4ade80; }
+    .stat-value.latency { color: #fbbf24; }
+    .stat-value.render { color: #60a5fa; }
+    .stat-value.nails { color: #f472b6; }
+
+    /* Performance Preset */
+    .perf-presets {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .perf-preset {
+      flex: 1;
+      padding: 8px;
+      background: #1a1a1a;
+      border: 2px solid #333;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .perf-preset:hover {
+      border-color: #667eea;
+    }
+
+    .perf-preset.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-color: #667eea;
+      color: white;
+    }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .stats-panel {
+        position: relative;
+        top: 0;
+        right: 0;
+        margin-bottom: 20px;
+      }
+    }
+
+    .preview-box {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-box h3 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .preview-box canvas,
+    .preview-box video {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+      background: #000;
+    }
+
+    /* Live indicator */
+    .live-indicator {
+      position: absolute;
+      top: 28px;
+      right: 28px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-label {
+      font-size: 13px;
+      color: #aaa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-value {
+      font-weight: 700;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #222;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      cursor: pointer;
+      border: none;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 50px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #000;
+    }
+
+    /* Buttons */
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      flex: 1;
+      min-width: 150px;
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    button.primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+
+    button.secondary {
+      background: #1a1a1a;
+      color: #eee;
+      border: 1px solid #333;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: #222;
+      border-color: #444;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Status */
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      border-left: 4px solid #667eea;
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    .status.error {
+      border-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+    }
+
+    .status.success {
+      border-color: #22c55e;
+      background: rgba(34, 197, 94, 0.1);
+      color: #86efac;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Real-Time Nail AR</h1>
+      <div class="tech-badges">
+        <span class="badge badge-webgl">WebGL 2.0</span>
+        <span class="badge badge-optimized">Optimized</span>
+        <span class="badge badge-gpu">GPU Accelerated</span>
+      </div>
+    </header>
+
+    <!-- Stats Panel -->
+    <div class="stats-panel">
+      <h3>Performance Metrics</h3>
+      <div class="stat-item">
+        <span class="stat-label">FPS</span>
+        <span class="stat-value fps" id="fpsValue">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Render Time</span>
+        <span class="stat-value render" id="renderTime">0ms</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">API Latency</span>
+        <span class="stat-value latency" id="apiLatency">-</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Nails Detected</span>
+        <span class="stat-value nails" id="nailCount">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Frame Size</span>
+        <span class="stat-value" id="frameSize" style="color: #a78bfa;">-</span>
+      </div>
+
+      <h3 style="margin-top: 16px;">Performance Preset</h3>
+      <div class="perf-presets">
+        <div class="perf-preset" data-preset="low">Low<br/>30 FPS</div>
+        <div class="perf-preset active" data-preset="medium">Medium<br/>60 FPS</div>
+        <div class="perf-preset" data-preset="high">High<br/>60 FPS</div>
+      </div>
+    </div>
+
+    <div id="statusDiv" class="status">Ready to start camera</div>
+
+    <div class="button-group">
+      <button id="startBtn" class="primary">🎥 Start Camera</button>
+      <button id="segmentBtn" class="secondary" disabled>🔍 Segment Nails</button>
+      <button id="toggleProcessing" class="secondary" disabled>▶ Start Real-Time</button>
+    </div>
+
+    <div class="main-grid">
+      <div class="preview-box">
+        <h3>Live Camera Feed</h3>
+        <div class="live-indicator" id="liveIndicator" style="display: none;">
+          <div class="live-dot"></div>
+          <span>LIVE</span>
+        </div>
+        <video id="video" width="640" height="480" autoplay playsinline muted></video>
+      </div>
+
+      <div class="preview-box">
+        <h3>WebGL Rendered Output</h3>
+        <canvas id="canvas" width="640" height="480"></canvas>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <div class="controls-grid">
+        <div class="control-group">
+          <label class="control-label">
+            Polish Color
+          </label>
+          <input type="color" id="colorPicker" value="#ff1493" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Intensity
+            <span class="control-value" id="intensityValue">90%</span>
+          </label>
+          <input type="range" id="intensity" min="0" max="100" value="90" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Glossiness
+            <span class="control-value" id="glossValue">50%</span>
+          </label>
+          <input type="range" id="glossiness" min="0" max="100" value="50" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Metallic
+            <span class="control-value" id="metallicValue">10%</span>
+          </label>
+          <input type="range" id="metallic" min="0" max="100" value="10" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">
+            Update Interval
+            <span class="control-value" id="intervalValue">1000ms</span>
+          </label>
+          <input type="range" id="processingInterval" min="500" max="3000" value="1000" step="100" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="webgl-nails.js"></script>
+  <script src="app-realtime.js"></script>
+  <script>
+    // Performance preset handler
+    document.querySelectorAll('.perf-preset').forEach(preset => {
+      preset.addEventListener('click', () => {
+        document.querySelectorAll('.perf-preset').forEach(p => p.classList.remove('active'));
+        preset.classList.add('active');
+
+        const level = preset.dataset.preset;
+        applyPreset(level);
+      });
+    });
+
+    function applyPreset(level) {
+      const presets = {
+        low: {
+          interval: 2000,
+          glossiness: 30,
+          metallic: 0,
+          message: "Low performance mode: Slower updates, minimal effects"
+        },
+        medium: {
+          interval: 1000,
+          glossiness: 50,
+          metallic: 10,
+          message: "Medium performance mode: Balanced quality and speed"
+        },
+        high: {
+          interval: 500,
+          glossiness: 70,
+          metallic: 20,
+          message: "High performance mode: Best quality, requires fast device"
+        }
+      };
+
+      const settings = presets[level];
+
+      document.getElementById('processingInterval').value = settings.interval;
+      document.getElementById('intervalValue').textContent = settings.interval + 'ms';
+
+      document.getElementById('glossiness').value = settings.glossiness;
+      document.getElementById('glossValue').textContent = settings.glossiness + '%';
+
+      document.getElementById('metallic').value = settings.metallic;
+      document.getElementById('metallicValue').textContent = settings.metallic + '%';
+
+      // Trigger re-render if camera is active
+      if (typeof renderFrame === 'function') {
+        renderFrame();
+      }
+
+      console.log(`✅ Applied ${level} performance preset`);
+      setStatus(settings.message, 'success');
+    }
+
+    // Apply medium preset by default on load
+    window.addEventListener('load', () => {
+      applyPreset('medium');
+    });
+  </script>
+</body>
+</html>
