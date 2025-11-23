@@ -1,6 +1,8 @@
 # backend/main.py
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from model_rf_deter import run_inference
 from schemas import NailResponse, NailInstance
@@ -37,3 +39,9 @@ async def segment_nails(file: UploadFile = File(...)):
         height=result["height"],
         nails=nails,
     )
+
+
+# Serve frontend static files (must be after API routes)
+frontend_path = Path(__file__).parent.parent / "frontend"
+if frontend_path.exists():
+    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="static")

@@ -338,7 +338,7 @@
 
   <script>
     // Check backend status
-    fetch('http://localhost:8000/docs')
+    fetch('/docs')
       .then(response => {
         const status = document.getElementById('backendStatus');
         if (response.ok) {

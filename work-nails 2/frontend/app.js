@@ -1,6 +1,6 @@
 // app.js — webcam capture + RF-DETR + LAB recolor + gloss effect
 
-const API_URL = "http://localhost:8000/api/nails/segment";
+const API_URL = "/api/nails/segment";
 
 const startCameraBtn = document.getElementById("startCameraBtn");
 const captureBtn     = document.getElementById("captureBtn");

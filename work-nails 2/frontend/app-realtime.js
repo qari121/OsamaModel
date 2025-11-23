@@ -1,6 +1,6 @@
 // app-realtime.js — Real-time nail AR with performance monitoring
 
-const API_URL = "http://localhost:8000/api/nails/segment";
+const API_URL = "/api/nails/segment";
 
 // UI Elements
 const startBtn = document.getElementById("startBtn");

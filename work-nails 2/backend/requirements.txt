@@ -4,5 +4,6 @@ pydantic
 numpy
 pillow
 opencv-python-headless
-# torch
-# torchvision
+rfdetr
+supervision
+# torch and torchvision are installed separately in Dockerfile with CUDA support

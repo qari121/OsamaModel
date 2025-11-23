@@ -1,6 +1,6 @@
 // app-webgl.js — Main app logic with WebGL rendering
 
-const API_URL = "http://localhost:8000/api/nails/segment";
+const API_URL = "/api/nails/segment";
 
 const startCameraBtn = document.getElementById("startCameraBtn");
 const captureBtn = document.getElementById("captureBtn");
